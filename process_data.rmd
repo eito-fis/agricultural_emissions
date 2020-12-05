@@ -1,0 +1,37 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  github_document:
+    toc: yes
+  pdf_document:
+    toc: yes
+---
+```{r setup}
+library(tidyverse)
+```
+
+**Process emissions data**
+```{r}
+df_emissions <- read_csv("./data/Emissions_Agriculture_Agriculture_total_E_All_Data.csv")
+df_emissions %>% glimpse()
+df_emissions %>% summary()
+```
+
+```{r}
+pattern = "Y(\\d\\d\\d\\d)(F)*"
+df_emissions <- read_csv("./data/Emissions_Agriculture_Agriculture_total_E_All_Data.csv")
+df_emissions <- 
+  df_emissions %>%
+  filter(Area == "United States of America") %>%
+  select(-"Area Code", -"Item Code", -"Element Code", -ends_with("N")) %>%
+  pivot_longer(
+    starts_with("Y"),
+    names_to = c(".value", "Flag"),
+    names_pattern = pattern
+  )
+df_emissions
+```
+
