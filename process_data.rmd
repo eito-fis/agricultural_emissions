@@ -22,16 +22,52 @@ df_emissions %>% summary()
 
 ```{r}
 pattern = "Y(\\d\\d\\d\\d)(F)*"
-df_emissions <- read_csv("./data/Emissions_Agriculture_Agriculture_total_E_All_Data.csv")
+col_pattern = "Y(\\d\\d\\d\\d)$"
 df_emissions <- 
   df_emissions %>%
   filter(Area == "United States of America") %>%
   select(-"Area Code", -"Item Code", -"Element Code", -ends_with("N")) %>%
   pivot_longer(
-    starts_with("Y"),
-    names_to = c(".value", "Flag"),
-    names_pattern = pattern
-  )
+    matches(col_pattern),
+    names_to = "Year",
+    values_to = "Year_Value"
+  ) %>%
+  pivot_longer(
+    ends_with("F"),
+    names_to = "Flag_Year",
+    values_to = "Flag"
+  ) %>%
+  filter(str_c(Year, "F") == Flag_Year) %>%
+  select(-Flag_Year) %>%
+  mutate(Year = str_remove(Year, "^."))
 df_emissions
 ```
+
+```{r fig.width=15, fig.height=15}
+df_emissions_pivot <- df_emissions
+df_emissions <-
+  df_emissions %>%
+  pivot_wider(
+    names_from = Element,
+    values_from = Year_Value
+  ) %>%
+  select(-"Emissions (CH4)", -"Emissions (N2O)") %>%
+  rename(CO2 = "Emissions (CO2eq)", CH4 = "Emissions (CO2eq) from CH4", N2O = "Emissions (CO2eq) from N2O")
+df_emissions
+```
+
+```{r}
+df_emissions %>%
+  write.csv(
+    "./processed/emissions.csv",
+    row.names = FALSE
+  )
+df_emissions_pivot %>%
+  write.csv(
+    "./processed/emissions_pivot.csv",
+    row.names = FALSE
+  )
+```
+
+
 
