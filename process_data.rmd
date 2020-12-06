@@ -22,7 +22,7 @@ There is also a df_emissions_pivot dataset which includes the un-pivoted data, w
 The df_emissions_wide dataset contains the fully widened version of the data, where each row is a year and each column is a <emitter>|<metric> pair.
 
 ```{r}
-df_emissions <- read_csv("./data/Emissions_Agriculture_Agriculture_total_E_All_Data.csv")
+df_emissions <- read_csv("./data/raw/Emissions_Agriculture_Agriculture_total_E_All_Data.csv")
 df_emissions %>% glimpse()
 df_emissions %>% summary()
 ```
@@ -289,4 +289,60 @@ df_all %>%
   )
 ```
   
-  
+```{r}
+df_emissions
+
+df_emissions %>% 
+  filter(Item != "Agriculture total") %>%
+  filter(Item != "Agricultural Soils") %>%
+  ggplot(aes(group_by(Item),
+    x = as.numeric(Year),
+    y = as.numeric(CO2),
+    color = Item,
+    order = CO2
+  )) +
+  geom_vline(xintercept = 2017) +
+  geom_line(size = 1) +
+  labs(
+    x = "Year",
+    y = "CO2 Released",
+    title = "CO2 Emmissions vs Source"
+  )
+
+df_emissions %>% 
+  filter(Item != "Agriculture total") %>%
+  filter(Item != "Agricultural Soils") %>%
+  ggplot(aes(group_by(Item),
+    x = as.numeric(Year),
+    y = as.numeric(CH4),
+    color = Item
+  )) +
+  geom_vline(xintercept = 2017) +
+  geom_line(size = 1) +
+  labs(
+    x = "Year",
+    y = "CH4 Released",
+    title = "CH4 Emmissions vs Source"
+  )
+
+df_emissions %>% 
+  filter(Item != "Agriculture total") %>%
+  filter(Item != "Agricultural Soils") %>%
+  ggplot(aes(group_by(Item),
+    x = as.numeric(Year),
+    y = as.numeric(N2O),
+    color = Item
+  )) +
+  geom_vline(xintercept = 2017) +
+  geom_line(size = 1) +
+  labs(
+    x = "Year",
+    y = "N2O Released",
+    title = "N2O Emmissions vs Source"
+  )
+```
+```{r}
+
+```
+
+
