@@ -15,7 +15,11 @@ library(tidyverse)
 
 **Process emissions data**
 
-Final df_emissions includes CO2, CH4 and N2O emissions (in terms of CO2) per year for each different source of agricultural emissions. Flags and units are the same across all three measurements, so they are also included. There is also a df_emissions_pivot dataset which includes the un-pivoted data, which may be used for faceting / graphing purposes. This df includes an Element column and a Year_Value column, where the former designates which metric is being measured in the row and the latter holds the measured value.
+Final df_emissions includes CO2, CH4 and N2O emissions (in terms of CO2) per year for each different source of agricultural emissions. Flags and units are the same across all three measurements, so they are also included.
+
+There is also a df_emissions_pivot dataset which includes the un-pivoted data, which may be used for faceting / graphing purposes. This df includes an Element column and a Year_Value column, where the former designates which metric is being measured in the row and the latter holds the measured value.
+
+The df_emissions_wide dataset contains the fully widened version of the data, where each row is a year and each column is a <emitter>|<metric> pair.
 
 ```{r}
 df_emissions <- read_csv("./data/Emissions_Agriculture_Agriculture_total_E_All_Data.csv")
@@ -60,6 +64,26 @@ df_emissions
 ```
 
 ```{r}
+df_emissions_wide <-
+  df_emissions_pivot %>%
+  select(-Unit, -Flag) %>%
+  filter(Element != "Emissions (CH4)" & Element != "Emissions (N2O)") %>%
+  mutate(
+    Element = case_when(
+      Element == "Emissions (CO2eq)" ~ "CO2",
+      Element == "Emissions (CO2eq) from CH4" ~ "CH4",
+      Element == "Emissions (CO2eq) from N2O" ~ "N2O"
+    )
+  ) %>%
+  pivot_wider(
+    names_from = c(Item, Element),
+    values_from = Year_Value,
+    names_sep = "|"
+  )
+df_emissions_wide
+```
+
+```{r}
 df_emissions %>%
   write.csv(
     "./data/processed/emissions.csv",
@@ -70,11 +94,20 @@ df_emissions_pivot %>%
     "./data/processed/emissions_pivot.csv",
     row.names = FALSE
   )
+df_emissions_wide %>%
+  write.csv(
+    "./data/processed/emissions_wide.csv",
+    row.names = FALSE
+  )
 ```
 
 **Process crops data**
 
-df_crops includes the Area Harvested, Yield and Production for each year and crop. Units and flags are not included in the final df as the units and flags vary across columns. If units and / or flags are desired, use df_crops_pivot. df_crops_pivot is the un-pivoted version of the data with Element, Year_Value, Unit and Flag columns. Element designates the type of measurement, Year_Value designates the measurement for the year and crop, Unit designates the units of the measurement and Flag designates how this value was determined.
+df_crops includes the Area Harvested, Yield and Production for each year and crop. Units and flags are not included in the final df as the units and flags vary across columns. If units and / or flags are desired, use df_crops_pivot.
+
+df_crops_pivot is the un-pivoted version of the data with Element, Year_Value, Unit and Flag columns. Element designates the type of measurement, Year_Value designates the measurement for the year and crop, Unit designates the units of the measurement and Flag designates how this value was determined.
+
+df_crops_wide is the widest version of the data, where each row is a single year and each column is a <crop>|<metric> pair.
 
 ```{r}
 df_crops <- read_csv("./data/raw/Production_Crops_E_All_Data.csv")
@@ -119,6 +152,18 @@ df_crops
 ```
 
 ```{r}
+df_crops_wide <-
+  df_crops_pivot %>%
+  select(-Unit, -Flag) %>%
+  pivot_wider(
+    names_from = c(Item, Element),
+    values_from = Year_Value,
+    names_sep = "|"
+  )
+df_crops_wide
+```
+
+```{r}
 df_crops %>%
   write.csv(
     "./data/processed/crops.csv",
@@ -129,12 +174,19 @@ df_crops_pivot %>%
     "./data/processed/crops_pivot.csv",
     row.names = FALSE
   )
+df_crops_wide %>%
+  write.csv(
+    "./data/processed/crops_wide.csv",
+    row.names = FALSE
+  )
 ```
 
 
 **Process livestock data**
 
 df_livestock contains the number of livestock of each type per year in Stock. Units and Flags are contained as there is only a single metric. 
+
+df_livestock_wider is the widest version of the dataset, where each row is a year and each column is a <livestock>|<metric> pair. Units are normalized across livestock, so the metric being counted is the number of alive animals (objects, in the case of beehives).
 
 ```{r}
 df_livestock <- read_csv("./data/raw/Production_Livestock_E_All_Data.csv")
@@ -178,6 +230,24 @@ df_livestock
 ```
 
 ```{r}
+df_livestock_pivot
+df_livestock_wide <-
+  df_livestock_pivot %>%
+  mutate(
+    Year_Value = if_else(Unit == "1000 Head",
+                         Year_Value * 1000,
+                         Year_Value)
+  ) %>%
+  select(-Flag, -Unit) %>%
+  pivot_wider(
+    names_from = c(Item, Element),
+    values_from = Year_Value,
+    names_sep = "|"
+  )
+df_livestock_wide
+```
+
+```{r}
 df_livestock %>%
   write.csv(
     "./data/processed/livestock.csv",
@@ -188,4 +258,35 @@ df_livestock_pivot %>%
     "./data/processed/livestock_pivot.csv",
     row.names = FALSE
   )
+df_livestock_wide %>%
+  write.csv(
+    "./data/processed/livestock_wide.csv",
+    row.names = FALSE
+  )
 ```
+
+**Combined Dataset**
+
+All above datasets combined together on year. Inteneded usage is as an input to a linear model.
+
+```{r}
+df_emissions_wide
+df_crops_wide
+df_livestock_wide
+```
+
+```{r}
+df_all <- inner_join(df_emissions_wide, df_crops_wide, by = "Year")
+df_all <- inner_join(df_all, df_livestock_wide, by = "Year")
+df_all
+```
+  
+```{r}
+df_all %>%
+  write.csv(
+    "./data/processed/combined.csv",
+    row.names = FALSE
+  )
+```
+  
+  
