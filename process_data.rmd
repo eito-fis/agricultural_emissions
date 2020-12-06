@@ -59,12 +59,12 @@ df_emissions
 ```{r}
 df_emissions %>%
   write.csv(
-    "./processed/emissions.csv",
+    "./data/processed/emissions.csv",
     row.names = FALSE
   )
 df_emissions_pivot %>%
   write.csv(
-    "./processed/emissions_pivot.csv",
+    "./data/processed/emissions_pivot.csv",
     row.names = FALSE
   )
 ```
