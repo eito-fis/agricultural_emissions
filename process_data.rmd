@@ -14,6 +14,9 @@ library(tidyverse)
 ```
 
 **Process emissions data**
+
+Final df_emissions includes CO2, CH4 and N2O emissions (in terms of CO2) per year for each different source of agricultural emissions. Flags and units are the same across all three measurements, so they are also included. There is also a df_emissions_pivot dataset which includes the un-pivoted data, which may be used for faceting / graphing purposes. This df includes an Element column and a Year_Value column, where the former designates which metric is being measured in the row and the latter holds the measured value.
+
 ```{r}
 df_emissions <- read_csv("./data/Emissions_Agriculture_Agriculture_total_E_All_Data.csv")
 df_emissions %>% glimpse()
@@ -69,5 +72,120 @@ df_emissions_pivot %>%
   )
 ```
 
+**Process crops data**
+
+df_crops includes the Area Harvested, Yield and Production for each year and crop. Units and flags are not included in the final df as the units and flags vary across columns. If units and / or flags are desired, use df_crops_pivot. df_crops_pivot is the un-pivoted version of the data with Element, Year_Value, Unit and Flag columns. Element designates the type of measurement, Year_Value designates the measurement for the year and crop, Unit designates the units of the measurement and Flag designates how this value was determined.
+
+```{r}
+df_crops <- read_csv("./data/raw/Production_Crops_E_All_Data.csv")
+df_crops %>% glimpse()
+df_crops %>% summary()
+df_crops
+```
+
+```{r}
+pattern = "Y(\\d\\d\\d\\d)(F)*"
+col_pattern = "Y(\\d\\d\\d\\d)$"
+df_crops <- 
+  df_crops %>%
+  filter(Area == "United States of America") %>%
+  select(-"Area Code", -"Item Code", -"Element Code") %>%
+  pivot_longer(
+    matches(col_pattern),
+    names_to = "Year",
+    values_to = "Year_Value"
+  ) %>%
+  pivot_longer(
+    ends_with("F"),
+    names_to = "Flag_Year",
+    values_to = "Flag"
+  ) %>%
+  filter(str_c(Year, "F") == Flag_Year) %>%
+  select(-Flag_Year) %>%
+  mutate(Year = str_remove(Year, "^."))
+df_crops
+```
+
+```{r fig.width=15, fig.height=15}
+df_crops_pivot <- df_crops
+df_crops <-
+  df_crops %>%
+  select(-Unit, -Flag) %>%
+  pivot_wider(
+    names_from = Element,
+    values_from = Year_Value
+  )
+df_crops
+```
+
+```{r}
+df_crops %>%
+  write.csv(
+    "./data/processed/crops.csv",
+    row.names = FALSE
+  )
+df_crops_pivot %>%
+  write.csv(
+    "./data/processed/crops_pivot.csv",
+    row.names = FALSE
+  )
+```
 
 
+**Process livestock data**
+
+df_livestock contains the number of livestock of each type per year in Stock. Units and Flags are contained as there is only a single metric. 
+
+```{r}
+df_livestock <- read_csv("./data/raw/Production_Livestock_E_All_Data.csv")
+df_livestock %>% glimpse()
+df_livestock %>% summary()
+df_livestock
+```
+
+```{r}
+pattern = "Y(\\d\\d\\d\\d)(F)*"
+col_pattern = "Y(\\d\\d\\d\\d)$"
+df_livestock <- 
+  df_livestock %>%
+  filter(Area == "United States of America") %>%
+  select(-"Area Code", -"Item Code", -"Element Code") %>%
+  pivot_longer(
+    matches(col_pattern),
+    names_to = "Year",
+    values_to = "Year_Value"
+  ) %>%
+  pivot_longer(
+    ends_with("F"),
+    names_to = "Flag_Year",
+    values_to = "Flag"
+  ) %>%
+  filter(str_c(Year, "F") == Flag_Year) %>%
+  select(-Flag_Year) %>%
+  mutate(Year = str_remove(Year, "^."))
+df_livestock
+```
+
+```{r fig.width=15, fig.height=15}
+df_livestock_pivot <- df_livestock
+df_livestock <-
+  df_livestock %>%
+  pivot_wider(
+    names_from = Element,
+    values_from = Year_Value
+  )
+df_livestock
+```
+
+```{r}
+df_livestock %>%
+  write.csv(
+    "./data/processed/livestock.csv",
+    row.names = FALSE
+  )
+df_livestock_pivot %>%
+  write.csv(
+    "./data/processed/livestock_pivot.csv",
+    row.names = FALSE
+  )
+```
