@@ -326,8 +326,8 @@ df_emissions %>%
   )
 
 df_emissions %>% 
-  filter(Item != "Agriculture total") %>%
-  filter(Item != "Agricultural Soils") %>%
+  # filter(Item != "Agriculture total") %>%
+  # filter(Item != "Agricultural Soils") %>%
   ggplot(aes(group_by(Item),
     x = as.numeric(Year),
     y = as.numeric(N2O),
@@ -341,8 +341,21 @@ df_emissions %>%
     title = "N2O Emmissions vs Source"
   )
 ```
-```{r}
 
+
+```{r}
+# df_all %>%
+#   rename(CO2 = "Enteric Fermentation|CO2", CH4 = "Enteric Fermentation|CH4") %>%
+#   ggplot(aes(x = as.numeric(Year))) +
+#   geom_line(aes(
+#     y = as.numeric(CH4),
+#     color = "red"
+#   )) +
+#   geom_line(aes(
+#     y = as.numeric(CO2),
+#     color = "j"
+#   ))
+glimpse(df_all)
 ```
 
 
