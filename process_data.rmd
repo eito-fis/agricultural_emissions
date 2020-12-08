@@ -280,7 +280,7 @@ df_all <- inner_join(df_emissions_wide, df_crops_wide, by = "Year")
 df_all <- inner_join(df_all, df_livestock_wide, by = "Year")
 df_all
 ```
-  
+
 ```{r}
 df_all %>%
   write.csv(
@@ -289,6 +289,34 @@ df_all %>%
   )
 ```
   
+```{r}
+df_all_agriculture <- inner_join(df_emissions_wide %>% select(
+  `Agriculture total|CO2`, Year
+), df_crops_wide, by = "Year")
+df_all_agriculture <- inner_join(df_all_agriculture, df_livestock_wide, by = "Year")
+df_all_agriculture <- df_all_agriculture %>% select(-"Area.x", -"Area.y")
+# df_all_agriculture %>% glimpse()
+df_all_agriculture_nona <- df_all_agriculture %>% mutate(
+    across(everything(), ~replace_na(.x, 0))
+  )
+# df_all_agriculture_nona %>% glimpse()
+```
+  
+```{r}
+df_all_agriculture %>% 
+  write.csv(
+      "./data/processed/combined_agriculture.csv",
+      row.names = FALSE
+    )
+
+df_all_agriculture_nona %>% 
+  write.csv(
+      "./data/processed/combined_agriculture_nona.csv",
+      row.names = FALSE
+    )
+```
+
+
 ```{r}
 df_emissions
 

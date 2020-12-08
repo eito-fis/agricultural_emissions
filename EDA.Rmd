@@ -5,6 +5,9 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(modelr)
+library(broom)
 ```
 
 ## R Markdown
@@ -18,14 +21,16 @@ df_crops <- read_csv("./data/processed/crops.csv")
 df_livestock <- read_csv("./data/processed/livestock.csv")
 df_emissions <- read_csv("./data/processed/emissions.csv")
 df_all <- read_csv("./data/processed/combined.csv")
+df_all_agriculture <- read_csv("./data/processed/combined_agriculture.csv")
+df_all_agriculture_nona <- read_csv("./data/processed/combined_agriculture_nona.csv")
 ```
 
 ```{r}
 df_emissions
 
 df_emissions %>% 
-  filter(Item != "Agriculture total") %>%
-  filter(Item != "Agricultural Soils") %>%
+  # filter(Item != "Agriculture total") %>%
+  # filter(Item != "Agricultural Soils") %>%
   ggplot(aes(group_by(Item),
     x = as.numeric(Year),
     y = as.numeric(CO2),
@@ -41,8 +46,8 @@ df_emissions %>%
   )
 
 df_emissions %>% 
-  filter(Item != "Agriculture total") %>%
-  filter(Item != "Agricultural Soils") %>%
+  # filter(Item != "Agriculture total") %>%
+  # filter(Item != "Agricultural Soils") %>%
   ggplot(aes(group_by(Item),
     x = as.numeric(Year),
     y = as.numeric(CH4),
@@ -74,7 +79,67 @@ df_emissions %>%
 ```
 
 ```{r}
-df_all
+fit_all <- lm(
+  formula = `Agriculture total|CO2` ~ . - Year,
+  data = df_all_agriculture_nona %>% filter(as.integer(Year) <= 2017)
+)
+df_coeff <- fit_all %>% tidy() %>% arrange(desc(estimate)) %>% tail(-1) %>% filter(estimate > 0)
+df_coeff
+```
+
+```{r}
+df_cor <- cor(df_all_agriculture_nona, df_all_agriculture_nona %>% select(`Agriculture total|CO2`)) %>% data.frame() %>% rownames_to_column("Term") %>% rename(cor = Agriculture.total.CO2) %>% tail(-1)
+df_cor
+```
+
+```{r}
+df_cor %>% 
+  mutate(
+    Term = fct_reorder(Term, cor)
+  ) %>% 
+  arrange(desc(abs(cor))) %>% 
+  head(30) %>% 
+  ggplot(aes(
+      x = cor,
+      y = Term
+    )) +
+    geom_col()
+```
+```{r}
+df_all_agriculture %>% 
+  mutate(`Cherries, sour|Area harvested` = (`Cherries, sour|Area harvested` - min(`Cherries, sour|Area harvested`)) / (max(`Cherries, sour|Area harvested`) - min(`Cherries, sour|Area harvested`))) %>% 
+  mutate(`Agriculture total|CO2` = (`Agriculture total|CO2` - min(`Agriculture total|CO2`)) / (max(`Agriculture total|CO2`) - min(`Agriculture total|CO2`))) %>% 
+  ggplot(aes(
+    x = as.numeric(Year)
+  )) +
+  geom_line(aes(
+    y = `Cherries, sour|Area harvested`,
+    color = "Sour Cherries"
+  )) +
+  geom_line(aes(
+    y = `Agriculture total|CO2`,
+    color = "Total Agriculture Emissions"
+  )) +
+  scale_color_manual(values = c("Sour Cherries" = "red", "Total Agriculture Emissions" = "black")) +
+  labs(
+    x = "Time (years)",
+    y = "Normalized Metric",
+    title = "Cherries Harvested vs Total Agriculture Emissions over Time (Normalized)"
+  ) +
+  theme(legend.position="bottom", legend.box = "horizontal")
+```
+
+
+```{r}
+df_coeff %>% 
+  mutate(
+    term = fct_reorder(term, estimate)
+  ) %>% 
+  ggplot(aes(
+      x = estimate,
+      y = term
+    )) +
+    geom_col()
 ```
 
 
