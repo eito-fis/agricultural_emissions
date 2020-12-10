@@ -38,4 +38,6 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
-all/
+data/all/*
+data/processed/*
+data/processed/

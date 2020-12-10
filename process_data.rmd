@@ -32,7 +32,7 @@ pattern = "Y(\\d\\d\\d\\d)(F)*"
 col_pattern = "Y(\\d\\d\\d\\d)$"
 df_emissions <- 
   df_emissions %>%
-  filter(Area == "United States of America") %>%
+  # filter(Area == "United States of America) %>%
   select(-"Area Code", -"Item Code", -"Element Code", -ends_with("N")) %>%
   pivot_longer(
     matches(col_pattern),
@@ -121,7 +121,7 @@ pattern = "Y(\\d\\d\\d\\d)(F)*"
 col_pattern = "Y(\\d\\d\\d\\d)$"
 df_crops <- 
   df_crops %>%
-  filter(Area == "United States of America") %>%
+  # filter(Area == "United States of America") %>%
   select(-"Area Code", -"Item Code", -"Element Code") %>%
   pivot_longer(
     matches(col_pattern),
@@ -159,7 +159,8 @@ df_crops_wide <-
     names_from = c(Item, Element),
     values_from = Year_Value,
     names_sep = "|"
-  )
+  ) %>%
+  select(-355, -356, -357)
 df_crops_wide
 ```
 
@@ -200,7 +201,7 @@ pattern = "Y(\\d\\d\\d\\d)(F)*"
 col_pattern = "Y(\\d\\d\\d\\d)$"
 df_livestock <- 
   df_livestock %>%
-  filter(Area == "United States of America") %>%
+  # filter(Area == "United States of America") %>%
   select(-"Area Code", -"Item Code", -"Element Code") %>%
   pivot_longer(
     matches(col_pattern),
@@ -267,17 +268,17 @@ df_livestock_wide %>%
 
 **Combined Dataset**
 
-All above datasets combined together on year. Inteneded usage is as an input to a linear model.
+All above datasets combined together on year. Intended usage is as an input to a linear model.
 
 ```{r}
-df_emissions_wide
-df_crops_wide
-df_livestock_wide
+df_crops_wide <- read_csv("./data/processed/crops_wide.csv")
+df_livestock_wide <- read_csv("./data/processed/livestock_wide.csv")
+df_emissions_wide <- read_csv("./data/processed/emissions_wide.csv")
 ```
 
 ```{r}
-df_all <- inner_join(df_emissions_wide, df_crops_wide, by = "Year")
-df_all <- inner_join(df_all, df_livestock_wide, by = "Year")
+df_all <- inner_join(df_emissions_wide, df_crops_wide, by = c("Year", "Area"))
+df_all <- inner_join(df_all, df_livestock_wide, by = c("Year", "Area"))
 df_all
 ```
 
@@ -290,28 +291,33 @@ df_all %>%
 ```
   
 ```{r}
-df_all_agriculture <- inner_join(df_emissions_wide %>% select(
-  `Agriculture total|CO2`, Year
-), df_crops_wide, by = "Year")
-df_all_agriculture <- inner_join(df_all_agriculture, df_livestock_wide, by = "Year")
-df_all_agriculture <- df_all_agriculture %>% select(-"Area.x", -"Area.y")
-# df_all_agriculture %>% glimpse()
-df_all_agriculture_nona <- df_all_agriculture %>% mutate(
-    across(everything(), ~replace_na(.x, 0))
+df_all_only_total_na <-
+  inner_join(
+    df_emissions_wide %>%
+      select(`Agriculture total|CO2`, Year, Area),
+    df_crops_wide,
+    by = c("Year", "Area")
   )
-# df_all_agriculture_nona %>% glimpse()
+df_all_only_total_na <- inner_join(df_all_only_total_na, df_livestock_wide, by = c("Year", "Area"))
+# df_all_agriculture <- df_all_agriculture %>% select(-"Area.x", -"Area.y")
+df_all_only_total <-
+  df_all_only_total_na %>%
+    mutate(
+      across(everything(), ~replace_na(.x, 0))
+    )
+df_all_only_total
 ```
   
 ```{r}
-df_all_agriculture %>% 
+df_all_only_total_na %>% 
   write.csv(
-      "./data/processed/combined_agriculture.csv",
+      "./data/processed/combined_total_na.csv",
       row.names = FALSE
     )
 
-df_all_agriculture_nona %>% 
+df_all_only_total %>% 
   write.csv(
-      "./data/processed/combined_agriculture_nona.csv",
+      "./data/processed/combined_total.csv",
       row.names = FALSE
     )
 ```
