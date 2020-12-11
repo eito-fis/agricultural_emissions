@@ -23,11 +23,15 @@ df_all_only_enteric <- read_csv("./data/processed/combined_enteric.csv")
 ```{r}
 df_all_only_total <-
   df_all_only_total_na %>%
-  filter(Area == c("United States of America")) %>%
-  select_if(~ !any(is.na(.))) %>%
-  filter(Year >= 1990) %>% 
-  # replace(is.na(.), 0) %>%
+  # filter(Area == c("United States of America")) %>%
+  # select_if(~ !any(is.na(.))) %>%
+  select_if(~ !is.logical(.)) %>%
+  # filter(Year >= 1990) %>%
+  replace(is.na(.), 0) %>%
   select(contains("CO2"), Year, Area, contains("Yield"))
+  # select(contains("CO2"), Year, Area, contains("Stock"))
+  # select(contains("CO2"), Year, Area, !contains("Stock"))
+  # select(contains("CO2"), Year, Area, contains("Area"))
 # -contains("Area harvested"), -contains("Production") contains("CO2"), Year, Area, contains("Yield") , -contains("Stocks")
 df_all_only_total
 
@@ -96,7 +100,7 @@ df_coeff %>%
   ) %>% 
   arrange(desc(abs(estimate))) %>% 
   filter(term != "(Intercept)") %>%
-  # head(30) %>%
+  head(30) %>%
   filter(estimate > 0) %>%
   ggplot(aes(
       x = estimate,
@@ -142,7 +146,7 @@ lasso_grid %>%
 
 ```{r}
 lowest_rmse <- lasso_grid %>%
-  select_best("rmse", maximize = FALSE)
+  select_best("rmse")
 
 final_lasso <- finalize_workflow(
   wf %>% add_model(tune_spec),
@@ -159,6 +163,16 @@ last_fit(
 ```
 
 
+ All countries, all years, only yield: 0.607
+ All countries, all years, only yield, no logical: 0.587
+ All countries, all years, only area, no logical: 0.977
+ All countries, all years, only crops, no logical: 0.998
+ All countries, all years, only livestock: 0.975
+ All countries, all years, all inputs: 0.985
+ All countries, filtered years, only yield: 0.684
+*All countries, filtered years, only yield, no logical: 0.271*
+ All countries, filtered years, only livestock: 0.979
+ All countries, filtered years, all inputs: 0.999
 
 
 
@@ -176,7 +190,7 @@ last_fit(
 
 
 
-
+  
 
 
 

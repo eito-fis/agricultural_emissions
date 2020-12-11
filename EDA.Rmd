@@ -171,5 +171,33 @@ df_coeff %>%
     )) +
   geom_col()
 ```
+```{r}
+df_all_only_total %>% 
+  filter(Area == "United States of America") %>%
+  mutate(
+    `Cherries, sour|Area harvested` = (`Cherries, sour|Area harvested` - min(`Cherries, sour|Area harvested`)) /
+      (max(`Cherries, sour|Area harvested`) - min(`Cherries, sour|Area harvested`))) %>% 
+  mutate(
+    `Agriculture total|CO2` = (`Agriculture total|CO2` - min(`Agriculture total|CO2`)) /
+      (max(`Agriculture total|CO2`) - min(`Agriculture total|CO2`))) %>% 
+  ggplot(aes(
+    x = as.numeric(Year)
+  )) +
+  geom_line(aes(
+    y = `Cherries, sour|Area harvested`,
+    color = "Sour Cherries"
+  )) +
+  geom_line(aes(
+    y = `Agriculture total|CO2`,
+    color = "Total Agriculture Emissions"
+  )) +
+  scale_color_manual(values = c("Sour Cherries" = "red", "Total Agriculture Emissions" = "black")) +
+  labs(
+    x = "Time (years)",
+    y = "Normalized Metric",
+    title = "Cherries Harvested vs Total Agriculture Emissions over Time (Normalized)"
+  ) +
+  theme(legend.position="bottom", legend.box = "horizontal")
+```
 
 
