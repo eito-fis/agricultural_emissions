@@ -18,11 +18,13 @@ df_all_only_total <- read_csv("./data/processed/combined_total.csv")
 
 df_all_only_enteric_na <- read_csv("./data/processed/combined_enteric.csv")
 df_all_only_enteric <- read_csv("./data/processed/combined_enteric.csv")
+df_livestock_patterns <- read_csv("./data/processed/df_livestock_patterns.csv")
 ```
 
 ```{r}
 df_all_only_total <-
   df_all_only_total_na %>%
+<<<<<<< HEAD
   # filter(Area == c("United States of America")) %>%
   # select_if(~ !any(is.na(.))) %>%
   select_if(~ !is.logical(.)) %>%
@@ -32,7 +34,17 @@ df_all_only_total <-
   # select(contains("CO2"), Year, Area, contains("Stock"))
   # select(contains("CO2"), Year, Area, !contains("Stock"))
   # select(contains("CO2"), Year, Area, contains("Area"))
+=======
+  filter(Area == c("United States of America")) %>%
+  select_if(~ !any(is.na(.))) %>%
+  filter(Year >= 1990)
+  # replace(is.na(.), 0) %>%
+  # select()
+>>>>>>> 17fc57e2744864a149a49d9a098a44b12bd754af
 # -contains("Area harvested"), -contains("Production") contains("CO2"), Year, Area, contains("Yield") , -contains("Stocks")
+# df_all_only_total <-
+#   df_livestock_patterns
+
 df_all_only_total
 
 # df_all_only_enteric <-

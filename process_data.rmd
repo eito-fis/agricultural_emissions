@@ -60,6 +60,7 @@ df_emissions <-
   ) %>%
   select(-"Emissions (CH4)", -"Emissions (N2O)") %>%
   rename(CO2 = "Emissions (CO2eq)", CH4 = "Emissions (CO2eq) from CH4", N2O = "Emissions (CO2eq) from N2O")
+df_emissions_temp <- df_emissions
 df_emissions
 ```
 
@@ -393,4 +394,59 @@ df_emissions %>%
 glimpse(df_all)
 ```
 
+```{r}
+df_livestock_pat <- read_csv("./data/raw/Environment_LivestockPatterns_E_All_Data_NOFLAG.csv")
+df_livestock_pat
+```
+```{r}
+pattern = "Y(\\d\\d\\d\\d)(F)*"
+col_pattern = "Y(\\d\\d\\d\\d)$"
+df_livestock_patterns <- 
+  df_livestock_pat %>%
+  # filter(Area == "United States of America) %>%
+  select(-"Area Code", -"Item Code", -"Element Code", -ends_with("N")) %>%
+  pivot_longer(
+    matches(col_pattern),
+    names_to = "Year",
+    values_to = "Year_Value"
+  ) %>%
+  mutate(Year = as.character(str_remove(Year, "^."))) %>% 
+  filter(Element == "Livestock units per agricultural land area")
+df_livestock_patterns
+```
+```{r}
+df_livestock_patterns <- 
+  inner_join(df_emissions_temp, df_livestock_patterns, by = c("Year", "Area"))
+```
+
+```{r}
+df_livestock_patterns_joined <- 
+  df_livestock_patterns %>% 
+  filter(Item.x == "Enteric Fermentation") %>%
+  # filter(Area == "United States of America") %>% 
+  # filter(Item.x != "Rice Cultivation") %>% 
+  select(-Unit.y, -Flag, -Unit.x)
+  # select(-Element) %>% 
+  # filter(Year == 2000)
+df_livestock_patterns_joined
+```
+```{r}
+df_livestock_norm_units_vs_enteric_ferm <- 
+  df_livestock_patterns_joined %>% 
+  select(-Item.x, -Element) %>% 
+  rename(animal = Item.y, how_many = Year_Value) %>% 
+  pivot_wider(
+    names_from = animal,
+    values_from = how_many
+  )
+df_livestock_norm_units_vs_enteric_ferm
+```
+
+```{r}
+df_livestock_norm_units_vs_enteric_ferm %>% 
+  write.csv(
+      "./data/processed/df_livestock_patterns.csv",
+      row.names = FALSE
+    )
+```
 
