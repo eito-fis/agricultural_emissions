@@ -83,9 +83,10 @@ df_emissions %>%
 
 ```{r}
 fit_all <- lm(
-  formula = `Agriculture total|CO2` ~ . - Year,
+  formula = `Agriculture total|CO2` ~ . - Year - Area,
   data = df_all_only_total %>% filter(as.integer(Year) <= 2017)
 )
+fit_all
 ```
 
 ```{r}
@@ -93,7 +94,7 @@ df_coeff <-
   fit_all %>%
   tidy() %>%
   arrange(desc(estimate)) %>%
-  filter(!str_detect(term, "Area")) %>%
+  # filter(!str_detect(term, "Area")) %>%
   tail(-1)
   # filter(estimate > 0) %>%
 df_coeff

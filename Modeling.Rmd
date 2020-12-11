@@ -1,0 +1,141 @@
+---
+title: "Modeling"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(tidymodels)
+library(modelr)
+library(broom)
+doParallel::registerDoParallel()
+```
+
+```{r}
+df_all_only_total_na <- read_csv("./data/processed/combined_total_na.csv")
+df_all_only_total <- read_csv("./data/processed/combined_total.csv")
+```
+
+```{r}
+emissions_split = initial_split(df_all_only_total, prop = 0.8)
+emissions_train = training(emissions_split)
+emissions_test = testing(emissions_split)
+emissions_train
+emissions_test
+```
+
+```{r}
+emissions_rec <-
+  recipe(`Agriculture total|CO2` ~ ., data = emissions_train) %>%
+  step_rm(Year, Area) %>%
+  step_zv(all_numeric(), -all_outcomes()) %>%
+  step_normalize(all_numeric(), -all_outcomes())
+
+emissions_prep <-
+  emissions_rec %>%
+  prep()
+```
+
+```{r}
+lasso_spec <-
+  linear_reg(penalty = 0.1, mixture=1) %>%
+  set_engine("glmnet")
+
+wf <-
+  workflow() %>%
+  add_recipe(emissions_rec)
+
+lasso_fit <-
+  wf %>%
+  add_model(lasso_spec) %>%
+  fit(data = emissions_train)
+
+df_coeff <-
+  lasso_fit %>%
+  pull_workflow_fit() %>%
+  tidy()
+df_coeff
+```
+
+```{r}
+df_coeff %>%
+  arrange(desc(estimate)) %>%
+  filter(term != "(Intercept)")
+```
+
+```{r fig.height=10}
+df_coeff %>% 
+  mutate(
+    term = fct_reorder(term, estimate)
+  ) %>% 
+  arrange(desc(abs(estimate))) %>% 
+  # head(30) %>%
+  filter(estimate > 0) %>%
+  ggplot(aes(
+      x = estimate,
+      y = term
+    )) +
+  geom_col()
+```
+
+```{r}
+emissions_boot <- bootstraps(emissions_train, 25)
+
+tune_spec <-
+  linear_reg(penalty = tune(), mixture = 1) %>%
+  set_engine("glmnet")
+
+lambda_grid <- grid_regular(penalty(), levels = 50)
+```
+
+```{r}
+lasso_grid <-
+  tune_grid(
+    wf %>% add_model(tune_spec),
+    resamples = emissions_boot,
+    grid = lambda_grid
+  )
+```
+
+```{r}
+lasso_grid %>%
+  collect_metrics() %>%
+  ggplot(aes(penalty, mean, color = .metric)) +
+  geom_errorbar(aes(
+    ymin = mean - std_err,
+    ymax = mean + std_err
+  ),
+  alpha = 0.5
+  ) +
+  geom_line(size = 1.5) +
+  facet_wrap(~.metric, scales = "free", nrow = 2) +
+  scale_x_log10() +
+  theme(legend.position = "none")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
