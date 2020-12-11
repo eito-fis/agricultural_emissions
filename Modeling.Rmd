@@ -15,14 +15,27 @@ doParallel::registerDoParallel()
 ```{r}
 df_all_only_total_na <- read_csv("./data/processed/combined_total_na.csv")
 df_all_only_total <- read_csv("./data/processed/combined_total.csv")
+
+df_all_only_enteric_na <- read_csv("./data/processed/combined_enteric.csv")
+df_all_only_enteric <- read_csv("./data/processed/combined_enteric.csv")
 ```
 
 ```{r}
 df_all_only_total <-
+  # df_all_only_total %>%
+  # filter(Area == "United States of America")
   df_all_only_total_na %>%
   filter(Area == "United States of America") %>%
   select_if(~ !any(is.na(.)))
 df_all_only_total
+
+# df_all_only_enteric <-
+  # df_all_only_enteric %>%
+  # filter(Area == "United States of America")
+#   df_all_only_enteric_na %>%
+#   filter(Area == "United States of America") %>%
+#   select_if(~ !any(is.na(.)))
+# df_all_only_enteric
 ```
 
 
@@ -36,6 +49,7 @@ emissions_test
 
 ```{r}
 emissions_rec <-
+  # recipe(`Enteric Fermentation|CO2` ~ ., data = emissions_train) %>%
   recipe(`Agriculture total|CO2` ~ ., data = emissions_train) %>%
   step_rm(Year, Area) %>%
   step_zv(all_numeric(), -all_outcomes()) %>%
@@ -123,6 +137,26 @@ lasso_grid %>%
   scale_x_log10() +
   theme(legend.position = "none")
 ```
+
+```{r}
+lowest_rmse <- lasso_grid %>%
+  select_best("rmse", maximize = FALSE)
+
+final_lasso <- finalize_workflow(
+  wf %>% add_model(tune_spec),
+  lowest_rmse
+)
+```
+
+```{r}
+last_fit(
+  final_lasso,
+  emissions_split
+) %>%
+  collect_metrics()
+```
+
+
 
 
 

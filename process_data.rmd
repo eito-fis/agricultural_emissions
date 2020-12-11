@@ -291,10 +291,11 @@ df_all %>%
 ```
   
 ```{r}
+isolate_column = "Enteric Fermentation|CO2"
 df_all_only_total_na <-
   inner_join(
     df_emissions_wide %>%
-      select(`Agriculture total|CO2`, Year, Area),
+      select(isolate_column, Year, Area),
     df_crops_wide,
     by = c("Year", "Area")
   )
@@ -311,13 +312,13 @@ df_all_only_total
 ```{r}
 df_all_only_total_na %>% 
   write.csv(
-      "./data/processed/combined_total_na.csv",
+      "./data/processed/combined_enteric_na.csv",
       row.names = FALSE
     )
 
 df_all_only_total %>% 
   write.csv(
-      "./data/processed/combined_total.csv",
+      "./data/processed/combined_enteric.csv",
       row.names = FALSE
     )
 ```
