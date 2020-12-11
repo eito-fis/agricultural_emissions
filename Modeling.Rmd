@@ -22,11 +22,13 @@ df_all_only_enteric <- read_csv("./data/processed/combined_enteric.csv")
 
 ```{r}
 df_all_only_total <-
-  # df_all_only_total %>%
-  # filter(Area == "United States of America")
   df_all_only_total_na %>%
-  filter(Area == "United States of America") %>%
-  select_if(~ !any(is.na(.)))
+  filter(Area == c("United States of America")) %>%
+  select_if(~ !any(is.na(.))) %>%
+  filter(Year >= 1990) %>% 
+  # replace(is.na(.), 0) %>%
+  select(contains("CO2"), Year, Area, contains("Yield"))
+# -contains("Area harvested"), -contains("Production") contains("CO2"), Year, Area, contains("Yield") , -contains("Stocks")
 df_all_only_total
 
 # df_all_only_enteric <-
@@ -87,7 +89,7 @@ df_coeff %>%
   filter(term != "(Intercept)")
 ```
 
-```{r fig.height=10}
+```{r}
 df_coeff %>% 
   mutate(
     term = fct_reorder(term, estimate)
