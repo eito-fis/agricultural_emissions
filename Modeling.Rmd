@@ -24,7 +24,6 @@ df_livestock_patterns <- read_csv("./data/processed/df_livestock_patterns.csv")
 ```{r}
 df_all_only_total <-
   df_all_only_total_na %>%
-<<<<<<< HEAD
   # filter(Area == c("United States of America")) %>%
   # select_if(~ !any(is.na(.))) %>%
   select_if(~ !is.logical(.)) %>%
@@ -34,13 +33,6 @@ df_all_only_total <-
   # select(contains("CO2"), Year, Area, contains("Stock"))
   # select(contains("CO2"), Year, Area, !contains("Stock"))
   # select(contains("CO2"), Year, Area, contains("Area"))
-=======
-  filter(Area == c("United States of America")) %>%
-  select_if(~ !any(is.na(.))) %>%
-  filter(Year >= 1990)
-  # replace(is.na(.), 0) %>%
-  # select()
->>>>>>> 17fc57e2744864a149a49d9a098a44b12bd754af
 # -contains("Area harvested"), -contains("Production") contains("CO2"), Year, Area, contains("Yield") , -contains("Stocks")
 # df_all_only_total <-
 #   df_livestock_patterns
@@ -173,6 +165,28 @@ last_fit(
 ) %>%
   collect_metrics()
 ```
+
+```{r}
+folds <- vfold_cv(emissions_train, v = 10)
+
+results <-
+  fit_resamples(
+    final_lasso,
+    folds
+  ) %>%
+  collect_metrics()
+results
+```
+
+```{r}
+r2 <- results %>% filter(.metric == "rsq")
+confidence_level = 0.95
+lo <- pull(r2, "mean") - qnorm( 1 - (1 - confidence_level) / 2 ) * pull(r2, "std_err")
+hi <- pull(r2, "mean") + qnorm( 1 - (1 - confidence_level) / 2 ) * pull(r2, "std_err")
+lo
+hi
+```
+
 
 
  All countries, all years, only yield: 0.607
