@@ -18,6 +18,15 @@ df_all_only_total <- read_csv("./data/processed/combined_total.csv")
 ```
 
 ```{r}
+df_all_only_total <-
+  df_all_only_total_na %>%
+  filter(Area == "United States of America") %>%
+  select_if(~ !any(is.na(.)))
+df_all_only_total
+```
+
+
+```{r}
 emissions_split = initial_split(df_all_only_total, prop = 0.8)
 emissions_train = training(emissions_split)
 emissions_test = testing(emissions_split)
@@ -70,6 +79,7 @@ df_coeff %>%
     term = fct_reorder(term, estimate)
   ) %>% 
   arrange(desc(abs(estimate))) %>% 
+  filter(term != "(Intercept)") %>%
   # head(30) %>%
   filter(estimate > 0) %>%
   ggplot(aes(
