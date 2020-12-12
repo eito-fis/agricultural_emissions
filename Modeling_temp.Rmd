@@ -13,11 +13,11 @@ doParallel::registerDoParallel()
 ```
 
 ```{r}
-df_all_only_total_na <- read_csv("./data/processed/combined_total_na.csv")
-df_all_only_total <- read_csv("./data/processed/combined_total.csv")
-
-df_all_only_enteric_na <- read_csv("./data/processed/combined_enteric.csv")
-df_all_only_enteric <- read_csv("./data/processed/combined_enteric.csv")
+# df_all_only_total_na <- read_csv("./data/processed/combined_total_na.csv")
+# df_all_only_total <- read_csv("./data/processed/combined_total.csv")
+# 
+# df_all_only_enteric_na <- read_csv("./data/processed/combined_enteric.csv")
+# df_all_only_enteric <- read_csv("./data/processed/combined_enteric.csv")
 df_livestock_patterns <- read_csv("./data/processed/df_livestock_patterns.csv")
 ```
 
@@ -32,7 +32,11 @@ df_all_only_total <-
 # -contains("Area harvested"), -contains("Production") contains("CO2"), Year, Area, contains("Yield") , -contains("Stocks")
 df_all_only_total <-
   df_livestock_patterns %>% 
-  select(-N2O, -CH4)
+  # filter(Area == "United States of America") %>%
+  # select_if(~ !any(is.na(.)))
+  replace(is.na(.), 0) %>% 
+  select(-contains("and"), -contains("Major"))
+  # filter(Year >= 1970)
 
 df_all_only_total
 
@@ -58,7 +62,7 @@ emissions_test
 emissions_rec <-
   # recipe(`Enteric Fermentation|CO2` ~ ., data = emissions_train) %>%
   recipe(`CO2` ~ ., data = emissions_train) %>%
-  step_rm(Year, Area) %>%
+  step_rm(Year, Area, Item) %>%
   step_zv(all_numeric(), -all_outcomes()) %>%
   step_normalize(all_numeric(), -all_outcomes())
 
@@ -102,16 +106,21 @@ df_coeff %>%
   arrange(desc(abs(estimate))) %>% 
   filter(term != "(Intercept)") %>%
   # head(30) %>%
-  filter(estimate > 0) %>%
+  # filter(estimate > 0) %>%
   ggplot(aes(
       x = estimate,
       y = term
     )) +
-  geom_col()
+  geom_col() +
+  labs(
+    x = "Correlation",
+    y = "Animal",
+    title = ""
+  )
 ```
 
 ```{r}
-emissions_boot <- bootstraps(emissions_train, 25)
+emissions_boot <- bootstraps(emissions_train, 100)
 
 tune_spec <-
   linear_reg(penalty = tune(), mixture = 1) %>%
@@ -163,7 +172,26 @@ last_fit(
   collect_metrics()
 ```
 
+```{r}
+folds <- vfold_cv(emissions_train, v = 10)
 
+results <-
+  fit_resamples(
+    final_lasso,
+    folds
+  ) %>%
+  collect_metrics()
+results
+```
+
+```{r}
+r2 <- results %>% filter(.metric == "rsq")
+confidence_level = 0.95
+lo <- pull(r2, "mean") - qnorm( 1 - (1 - confidence_level) / 2 ) * pull(r2, "std_err")
+hi <- pull(r2, "mean") + qnorm( 1 - (1 - confidence_level) / 2 ) * pull(r2, "std_err")
+lo
+hi
+```
 
 
 
