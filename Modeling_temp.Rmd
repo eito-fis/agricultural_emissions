@@ -22,11 +22,11 @@ df_livestock_patterns <- read_csv("./data/processed/df_livestock_patterns.csv")
 ```
 
 ```{r}
-df_all_only_total <-
-  df_all_only_total_na %>%
-  filter(Area == c("United States of America")) %>%
-  select_if(~ !any(is.na(.))) %>%
-  filter(Year >= 1990)
+# df_all_only_total <-
+#   df_all_only_total_na %>%
+#   # filter(Area == c("United States of America")) %>%
+#   select_if(~ !any(is.na(.))) %>%
+#   filter(Year >= 1990)
   # replace(is.na(.), 0) %>%
   # select()
 # -contains("Area harvested"), -contains("Production") contains("CO2"), Year, Area, contains("Yield") , -contains("Stocks")
@@ -35,6 +35,7 @@ df_all_only_total <-
   # filter(Area == "United States of America") %>%
   # select_if(~ !any(is.na(.)))
   replace(is.na(.), 0) %>% 
+  filter(CO2 != 0) %>%
   select(-contains("and"), -contains("Major"))
   # filter(Year >= 1970)
 
@@ -192,6 +193,77 @@ hi <- pull(r2, "mean") + qnorm( 1 - (1 - confidence_level) / 2 ) * pull(r2, "std
 lo
 hi
 ```
+
+```{r}
+predictions <-
+  collect_predictions(
+    last_fit(
+      final_lasso,
+      emissions_split,
+    )
+  ) %>%
+  pull(".pred")
+
+testing(emissions_split) %>%
+  mutate("Predicted CO2" = predictions) %>%
+  # filter(Area == "United States of America") %>%
+  filter(CO2 < 500000) %>%
+  ggplot(aes(CO2, `Predicted CO2`)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1, color = "grey")
+
+emissions_test %>%
+  mutate("Predicted CO2" = predictions) %>%
+  # filter(Area == "United States of America") %>%
+  filter(CO2 < 1000000) %>%
+  pivot_longer(
+    cols = c("CO2", "Predicted CO2"),
+    names_to = "metric",
+    values_to = "value"
+  ) %>%
+  ggplot(aes(x = Year)) +
+  geom_point(aes(y = value)) +
+  facet_wrap(~ metric)
+```
+
+```{r}
+df_all_only_total %>% 
+  # filter(Area == "United States of America") %>%
+  group_by(Area) %>%
+  mutate(tmp = sum(CO2)) %>%
+  ungroup() %>%
+  mutate(rank = dense_rank(desc(tmp))) %>%
+  filter(rank > 10 & rank < 100) %>%
+  select(-rank, -tmp) %>%
+  mutate(
+    `Cattle` = (`Cattle` - min(`Cattle`)) /
+      (max(`Cattle`) - min(`Cattle`))) %>%
+  mutate(
+    `CO2` = (`CO2` - min(`CO2`)) /
+      (max(`CO2`) - min(`CO2`))) %>%
+  ggplot(aes(
+    x = as.numeric(Year)
+  )) +
+  geom_line(aes(
+    y = `Cattle`,
+    color = "Cattle"
+  )) +
+  geom_line(aes(
+    y = `CO2`,
+    color = "Emissions"
+  )) +
+  facet_wrap(~ Area) +
+  scale_color_manual(values = c("Cattle" = "red", "Emissions" = "black"))
+  # labs(
+  #   x = "Time (years)",
+  #   y = "Normalized Metric",
+  #   title = "Cattle vs Emissions over Time (Normalized)"
+  # ) +
+  # theme(legend.position="bottom", legend.box = "horizontal")
+
+```
+
+
 
 
 

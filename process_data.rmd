@@ -412,13 +412,14 @@ df_livestock_patterns <-
     values_to = "Year_Value"
   ) %>%
   mutate(Year = as.character(str_remove(Year, "^."))) %>% 
-  filter(Element == "Share in total livestock") %>% 
+  filter(Element == "Stocks") %>% 
   pivot_wider(
     names_from = Item,
     values_from = Year_Value
   )
 df_livestock_patterns
 ```
+
 ```{r}
 df_livestock_patterns <- 
   inner_join(df_emissions_temp, df_livestock_patterns, by = c("Year", "Area"))

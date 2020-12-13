@@ -24,12 +24,17 @@ df_livestock_patterns <- read_csv("./data/processed/df_livestock_patterns.csv")
 ```{r}
 df_all_only_total <-
   df_all_only_total_na %>%
+  rename(CO2 = `Agriculture total|CO2`) %>%
+  # df_all_only_enteric_na %>%
+  # rename(CO2 = `Enteric Fermentation|CO2`) %>%
   # filter(Area == c("United States of America")) %>%
   # select_if(~ !any(is.na(.))) %>%
   select_if(~ !is.logical(.)) %>%
   # filter(Year >= 1990) %>%
   replace(is.na(.), 0) %>%
-  select(contains("CO2"), Year, Area, contains("Yield"))
+  # select(contains("CO2"), Year, Area) %>%
+  filter(CO2 != 0) %>%
+  select(-contains("and"))
   # select(contains("CO2"), Year, Area, contains("Stock"))
   # select(contains("CO2"), Year, Area, !contains("Stock"))
   # select(contains("CO2"), Year, Area, contains("Area"))
@@ -60,7 +65,7 @@ emissions_test
 ```{r}
 emissions_rec <-
   # recipe(`Enteric Fermentation|CO2` ~ ., data = emissions_train) %>%
-  recipe(`Agriculture total|CO2` ~ ., data = emissions_train) %>%
+  recipe(`CO2` ~ ., data = emissions_train) %>%
   step_rm(Year, Area) %>%
   step_zv(all_numeric(), -all_outcomes()) %>%
   step_normalize(all_numeric(), -all_outcomes())
@@ -105,7 +110,7 @@ df_coeff %>%
   arrange(desc(abs(estimate))) %>% 
   filter(term != "(Intercept)") %>%
   head(30) %>%
-  filter(estimate > 0) %>%
+  # filter(estimate > 0) %>%
   ggplot(aes(
       x = estimate,
       y = term
@@ -187,6 +192,46 @@ lo
 hi
 ```
 
+```{r}
+predictions <-
+  collect_predictions(
+    last_fit(
+      final_lasso,
+      emissions_split,
+    )
+  ) %>%
+  pull(".pred")
+
+testing(emissions_split) %>%
+  mutate("Predicted CO2" = predictions) %>%
+  # filter(Area == "United States of America") %>%
+  filter(CO2 < 500000) %>%
+  ggplot(aes(CO2, `Predicted CO2`)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1, color = "grey")
+
+emissions_test %>%
+  mutate("Predicted CO2" = predictions) %>%
+  # filter(Area == "United States of America") %>%
+  # filter(CO2 < 1000000) %>%
+  filter(CO2 > 100000) %>%
+  group_by(Area) %>%
+  filter(n() > 10) %>%
+  ungroup() %>%
+  pivot_longer(
+    cols = c("CO2", "Predicted CO2"),
+    names_to = "metric",
+    values_to = "value"
+  ) %>%
+  ggplot(aes(x = Year, group = Area, color = Area)) +
+  geom_line(aes(y = value)) +
+  # scale_y_log10() +
+  # scale_x_log10() +
+  theme(legend.position = "none") +
+  facet_wrap(~ metric)
+```
+
+
 
 
  All countries, all years, only yield: 0.607
@@ -200,6 +245,18 @@ hi
  All countries, filtered years, only livestock: 0.979
  All countries, filtered years, all inputs: 0.999
 
+
+*Maybe Causation?*
+- Impact of different factors on agricultural emissions.
+- How to modify current agricultural produce to produce less emissions?
+
+- What are the best predictors for predicting agricultural emissions?
+- Can we build a model that predicts agricultural emission from the raw agricultural output?
+  - All countries, predicted versus actual
+  - All countries, predicted versus actual, animated over time
+    - Requires creating test set from last n years 
+
+Above for enteric or total agricultural emissions
 
 
 
