@@ -22,6 +22,7 @@ df_livestock_patterns <- read_csv("./data/processed/df_livestock_patterns.csv")
 ```
 
 ```{r}
+countries_bad = c("USSR", "Americas", "Asia", "Australia and New Zealand", "China", "Central Asia", "Central America", "Eastern Africa", "Eastern Asia", "Eastern Euorpe", "Europe", "Land Locked Developing Countries", "Least Developed Countries", "Low Income Food Deficit Countries", "Middle Africa", "Net Food Importing Developing Countries", "Northern Europe", "Northern Africa", "Northern America", "Pacific Islands Trust Territory", "Southern Asia", "South America", "Southern Africa", "Small Island Developing States", "Serbia and Montenegro", "Western Asia", "Western Africa")
 df_all_only_total <-
   df_all_only_total_na %>%
   rename(CO2 = `Agriculture total|CO2`) %>%
@@ -34,7 +35,8 @@ df_all_only_total <-
   replace(is.na(.), 0) %>%
   # select(contains("CO2"), Year, Area) %>%
   filter(CO2 != 0) %>%
-  select(-contains("and"))
+  select(-contains("and")) %>%
+  filter(!(Area %in% countries_bad))
   # select(contains("CO2"), Year, Area, contains("Stock"))
   # select(contains("CO2"), Year, Area, !contains("Stock"))
   # select(contains("CO2"), Year, Area, contains("Area"))
@@ -42,7 +44,7 @@ df_all_only_total <-
 # df_all_only_total <-
 #   df_livestock_patterns
 
-df_all_only_total
+  df_all_only_total %>% select(contains("Stock")) %>% names() %>% as.factor() %>% fct_unique()
 
 # df_all_only_enteric <-
   # df_all_only_enteric %>%
@@ -164,11 +166,13 @@ final_lasso <- finalize_workflow(
 ```
 
 ```{r}
-last_fit(
+final_fit <- last_fit(
   final_lasso,
   emissions_split
-) %>%
-  collect_metrics()
+)
+
+emissions_split
+final_fit %>% collect_metrics()
 ```
 
 ```{r}
@@ -184,10 +188,17 @@ results
 ```
 
 ```{r}
-r2 <- results %>% filter(.metric == "rsq")
 confidence_level = 0.95
-lo <- pull(r2, "mean") - qnorm( 1 - (1 - confidence_level) / 2 ) * pull(r2, "std_err")
-hi <- pull(r2, "mean") + qnorm( 1 - (1 - confidence_level) / 2 ) * pull(r2, "std_err")
+
+stat <- results %>% filter(.metric == "rmse")
+lo <- pull(stat, "mean") - qnorm( 1 - (1 - confidence_level) / 2 ) * pull(stat, "std_err")
+hi <- pull(stat, "mean") + qnorm( 1 - (1 - confidence_level) / 2 ) * pull(stat, "std_err")
+lo
+hi
+
+stat <- results %>% filter(.metric == "rsq")
+lo <- pull(stat, "mean") - qnorm( 1 - (1 - confidence_level) / 2 ) * pull(stat, "std_err")
+hi <- pull(stat, "mean") + qnorm( 1 - (1 - confidence_level) / 2 ) * pull(stat, "std_err")
 lo
 hi
 ```
@@ -213,8 +224,8 @@ testing(emissions_split) %>%
 emissions_test %>%
   mutate("Predicted CO2" = predictions) %>%
   # filter(Area == "United States of America") %>%
-  # filter(CO2 < 1000000) %>%
-  filter(CO2 > 100000) %>%
+  filter(CO2 < 1000000) %>%
+  # filter(CO2 > 100000) %>%
   group_by(Area) %>%
   filter(n() > 10) %>%
   ungroup() %>%
