@@ -11,7 +11,17 @@ library(tidyverse)
 library(tidymodels)
 library(modelr)
 library(broom)
+library(gganimate)
+library(gifski)
 doParallel::registerDoParallel()
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  gganimate = list(
+    nframes = 50
+  ),
+  out.width = '100%'
+)
 ```
 
 ## Background
@@ -213,6 +223,7 @@ emissions_test %>%
 
 The second is a graph of the actual CO2 for a set of countries over time next to the predicted CO2 for the same set of countries over time. We filter for countries with more than 10 data points in the test set and exclude the many countries with a small amount of emissions to make a clearer graph. This does potentially ignore issues that we might have in predicting low emission countries, but considering we have validated our results several ways we believe this is alright. Looking at the graph, it is clear that the general shape of the emissions over time for both predicted and actual CO2 are very similar. 
 
+
 ```{r}
 emissions_test %>%
   mutate("Predicted CO2" = predictions) %>%
@@ -230,6 +241,29 @@ emissions_test %>%
   theme(legend.position = "none") +
   facet_wrap(~ metric)
 ```
+Animated
+
+```{r}
+anim <- emissions_test %>%
+  mutate("Predicted CO2" = predictions) %>%
+  filter(CO2 > 50000) %>%
+  group_by(Area) %>%
+  filter(n() > 10) %>%
+  ungroup() %>%
+  pivot_longer(
+    cols = c("CO2", "Predicted CO2"),
+    names_to = "metric",
+    values_to = "value"
+  ) %>%
+  ggplot(aes(x = Year, y = value, group = Area, color = Area)) +
+  geom_line() +
+  geom_point() +
+  theme(legend.position = "none") +
+  facet_wrap(~ metric) +
+  transition_reveal(Year)
+animate(anim, renderer = ffmpeg_renderer(format = "webm"), width=800)
+```
+
 
 ## Conclusion
 
